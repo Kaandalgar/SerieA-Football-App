@@ -1,3 +1,9 @@
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4)
+![MVC](https://img.shields.io/badge/ASP.NET%20Core-MVC-512BD4)
+![EF Core](https://img.shields.io/badge/Entity%20Framework-Core-blue)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-Database-red)
+
 # Serie A Football App
 
 ASP.NET Core Web API ve ASP.NET Core MVC kullanılarak geliştirilen, Serie A ligi için hazırlanmış full-stack futbol uygulaması.
