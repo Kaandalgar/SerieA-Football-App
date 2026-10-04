@@ -1,0 +1,837 @@
+﻿@model SerieA.WebUI.ViewModels.AdminTeamPageViewModel
+@{
+    Layout = null;
+
+    var teams = Model.Teams ?? new List<SerieA.WebUI.ViewModels.TeamSummaryViewModel>();
+
+    var cityCount = teams
+        .Where(x => !string.IsNullOrWhiteSpace(x.City))
+        .Select(x => x.City.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    var stadiumCount = teams
+        .Where(x => !string.IsNullOrWhiteSpace(x.Stadium))
+        .Select(x => x.Stadium.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    var logoCount = teams.Count(x => !string.IsNullOrWhiteSpace(x.LogoUrl));
+
+    var cities = teams
+        .Where(x => !string.IsNullOrWhiteSpace(x.City))
+        .Select(x => x.City.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x)
+        .ToList();
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Takım Yönetimi | Serie A Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="~/css/admin-team.css" asp-append-version="true">
+</head>
+
+<body class="admin">
+
+    <!-- İkon seti -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8.5a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+        <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M12 7.6l3.3 2.4-1.3 3.8h-4l-1.3-3.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-table" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16M9 4v16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M4.5 20c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M20 20l-4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" /></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-stadium" viewBox="0 0 24 24"><ellipse cx="12" cy="9" rx="9" ry="3.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M3 9v6c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5V9" fill="none" stroke="currentColor" stroke-width="1.8" /></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="1.8" /></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" /><circle cx="8.5" cy="9" r="1.7" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M4 17l5-5 3.5 3.5 2.5-2.5 5 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+    </svg>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar" aria-label="Yönetim menüsü">
+        <a class="sidebar-brand" href="/AdminMatch">
+            <span class="brand-mark" aria-hidden="true">SA</span>
+            <span class="brand-text">Serie A Admin</span>
+        </a>
+
+        <p class="sidebar-label">Yönetim</p>
+
+        <ul class="sidebar-nav">
+            <li>
+                <a class="sidebar-link" href="/Standings">
+                    <svg class="icon" aria-hidden="true"><use href="#i-home" /></svg>
+                    Ana Sayfa
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/AdminMatch">
+                    <svg class="icon" aria-hidden="true"><use href="#i-ball" /></svg>
+                    Maçlar
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link is-active" href="/AdminTeam" aria-current="page">
+                    <svg class="icon" aria-hidden="true"><use href="#i-shield" /></svg>
+                    Takımlar
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/Fixtures">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
+                    Fikstür
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/Standings">
+                    <svg class="icon" aria-hidden="true"><use href="#i-table" /></svg>
+                    Puan Durumu
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-foot">
+            <span class="sidebar-season">Sezon 2026/27</span>
+
+            <a class="sidebar-link sidebar-link--logout" href="/Standings">
+                <svg class="icon" aria-hidden="true"><use href="#i-logout" /></svg>
+                Siteye Dön
+            </a>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" data-sidebar-close></div>
+
+    <div class="admin-main">
+        <!-- Topbar -->
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button type="button"
+                        class="icon-btn menu-toggle"
+                        data-sidebar-toggle
+                        aria-controls="admin-sidebar"
+                        aria-expanded="false"
+                        aria-label="Menüyü aç">
+                    <svg class="icon" aria-hidden="true"><use href="#i-menu" /></svg>
+                </button>
+
+                <p class="topbar-title">Takım Yönetimi</p>
+                <span class="topbar-crumb">Yönetim / Takımlar</span>
+            </div>
+
+            <div class="topbar-right">
+                <div class="topbar-user">
+                    <span class="avatar">
+                        <svg class="icon" aria-hidden="true"><use href="#i-user" /></svg>
+                    </span>
+
+                    <span class="topbar-user__text">
+                        <span class="topbar-user__name">Yönetici</span>
+                        <span class="topbar-user__role">Tam yetkili</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+
+            <div class="page-head">
+                <div>
+                    <span class="page-eyebrow">Serie A 2026/27</span>
+                    <h1 class="page-title">Takım Yönetimi</h1>
+                    <p class="page-desc">
+                        Serie A kulüplerini görüntüleyebilir, ekleyebilir, düzenleyebilir ve silebilirsiniz.
+                    </p>
+                </div>
+
+                <button type="button" class="btn-a btn-a--primary" data-open-create>
+                    <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
+                    Yeni Takım Ekle
+                </button>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+
+            <!-- Lig özeti -->
+            <section class="league-strip" aria-label="Lig özeti">
+                <div class="strip-item strip-item--green">
+                    <span class="strip-icon">
+                        <svg class="icon"><use href="#i-shield" /></svg>
+                    </span>
+                    <div>
+                        <span class="strip-label">Takım sayısı</span>
+                        <span class="strip-value">@teams.Count <small>/ 20</small></span>
+                    </div>
+                </div>
+
+                <div class="strip-item strip-item--blue">
+                    <span class="strip-icon">
+                        <svg class="icon"><use href="#i-pin" /></svg>
+                    </span>
+                    <div>
+                        <span class="strip-label">Temsil edilen şehir</span>
+                        <span class="strip-value">@cityCount</span>
+                    </div>
+                </div>
+
+                <div class="strip-item strip-item--navy">
+                    <span class="strip-icon">
+                        <svg class="icon"><use href="#i-stadium" /></svg>
+                    </span>
+                    <div>
+                        <span class="strip-label">Farklı stadyum</span>
+                        <span class="strip-value">@stadiumCount</span>
+                    </div>
+                </div>
+
+                <div class="strip-item strip-item--red">
+                    <span class="strip-icon">
+                        <svg class="icon"><use href="#i-image" /></svg>
+                    </span>
+                    <div>
+                        <span class="strip-label">Logosu kayıtlı</span>
+                        <span class="strip-value">@logoCount</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Takım listesi -->
+            <section class="card-a" aria-label="Takım listesi">
+                <form class="filter-bar" data-filter-form role="search">
+
+                    <div class="filter-search">
+                        <label class="field-label" for="f-q">Takım Ara</label>
+
+                        <div class="input-icon">
+                            <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+
+                            <input class="input-a"
+                                   id="f-q"
+                                   name="q"
+                                   type="search"
+                                   placeholder="Takım, şehir veya stadyum"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="field-label" for="f-city">Şehir</label>
+                        <select class="select-a" id="f-city" name="city">
+                            <option value="">Tüm Şehirler</option>
+
+                            @foreach (var city in cities)
+                            {
+                                <option value="@city.ToLowerInvariant()">@city</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="field-label" for="f-logo">Logo</label>
+
+                        <select class="select-a" id="f-logo" name="logo">
+                            <option value="">Tümü</option>
+                            <option value="yes">Logosu var</option>
+                            <option value="no">Logosu yok</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="button"
+                                class="btn-a btn-a--ghost"
+                                data-filter-reset>
+                            Temizle
+                        </button>
+
+                        <button type="submit"
+                                class="btn-a btn-a--secondary">
+                            Filtrele
+                        </button>
+                    </div>
+                </form>
+
+                <div class="table-scroll">
+                    <table class="team-table">
+                        <caption class="visually-hidden">Serie A takım listesi</caption>
+
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-id">ID</th>
+                                <th scope="col">Takım</th>
+                                <th scope="col">Şehir</th>
+                                <th scope="col">Stadyum</th>
+                                <th scope="col">Logo</th>
+                                <th scope="col">Durum</th>
+                                <th scope="col" class="col-actions">İşlemler</th>
+                            </tr>
+                        </thead>
+
+                        <tbody data-team-rows>
+                            @foreach (var team in teams)
+                            {
+                                var hasLogo = !string.IsNullOrWhiteSpace(team.LogoUrl);
+
+                                <tr data-row
+                                    data-id="@team.Id"
+                                    data-name="@team.Name"
+                                    data-city="@team.City"
+                                    data-stadium="@team.Stadium"
+                                    data-logo="@team.LogoUrl"
+                                    data-has-logo="@(hasLogo ? "yes" : "no")"
+                                    data-search="@($"{team.Name} {team.City} {team.Stadium}".ToLowerInvariant())">
+
+                                    <td class="col-id">@team.Id</td>
+
+                                    <td>
+                                        <div class="team-cell">
+                                            @if (hasLogo)
+                                            {
+                                                <img class="team-crest"
+                                                     src="@Url.Content(team.LogoUrl)"
+                                                     alt="@team.Name">
+                                            }
+                                            else
+                                            {
+                                                <span class="team-crest" aria-hidden="true">SA</span>
+                                            }
+
+                                            <div>
+                                                <span class="team-name">@team.Name</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="city-cell">@team.City</td>
+
+                                    <td>@team.Stadium</td>
+
+                                    <td>
+                                        @if (hasLogo)
+                                        {
+                                            <span class="badge-a badge-a--active">Var</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-a badge-a--inactive">Yok</span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <span class="badge-a badge-a--active">Aktif</span>
+                                    </td>
+
+                                    <td class="col-actions">
+                                        <div class="row-actions">
+                                            <button type="button"
+                                                    class="act-btn"
+                                                    data-edit
+                                                    title="Düzenle">
+                                                <svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg>
+                                            </button>
+
+                                            <button type="button"
+                                                    class="act-btn act-btn--danger"
+                                                    data-delete
+                                                    title="Sil">
+                                                <svg class="icon" aria-hidden="true"><use href="#i-trash" /></svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-foot">
+                    <span data-result-count>@teams.Count takımdan @teams.Count tanesi gösteriliyor</span>
+                    <span>Serie A'da 20 takım bulunur</span>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Takım ekle / düzenle -->
+    <dialog class="modal-a" id="team-modal" aria-labelledby="team-modal-title">
+        <form method="post"
+              id="team-form"
+              asp-controller="AdminTeam"
+              asp-action="Create"
+              novalidate>
+
+            @Html.AntiForgeryToken()
+
+            <div class="modal-head">
+                <h2 class="modal-title" id="team-modal-title">Yeni Takım Ekle</h2>
+
+                <button type="button"
+                        class="icon-btn"
+                        data-modal-close
+                        aria-label="Kapat">
+                    <svg class="icon" aria-hidden="true"><use href="#i-x" /></svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="form-alert"
+                     data-form-alert
+                     role="alert">
+                    Lütfen zorunlu alanları kontrol edin.
+                </div>
+
+                <div class="crest-preview" aria-live="polite">
+                    <img class="team-crest team-crest--lg"
+                         data-preview-crest
+                         alt=""
+                         style="display:none">
+
+                    <div>
+                        <span class="crest-preview__name"
+                              data-preview-name>
+                            Takım adı
+                        </span>
+
+                        <span class="crest-preview__meta"
+                              data-preview-meta>
+                            Şehir, stadyum
+                        </span>
+                    </div>
+                </div>
+
+                <input type="hidden" id="t-id" name="Id">
+
+                <div class="form-grid">
+
+                    <div class="form-field"
+                         data-field="name">
+                        <label class="field-label"
+                               for="t-name">
+                            Takım Adı <span class="req">*</span>
+                        </label>
+
+                        <input class="input-a"
+                               id="t-name"
+                               name="Name"
+                               type="text"
+                               maxlength="60"
+                               placeholder="Örn. Inter Milano"
+                               autocomplete="off">
+
+                        <p class="field-error"></p>
+                    </div>
+
+                    <div class="form-field"
+                         data-field="city">
+                        <label class="field-label"
+                               for="t-city">
+                            Şehir <span class="req">*</span>
+                        </label>
+
+                        <input class="input-a"
+                               id="t-city"
+                               name="City"
+                               type="text"
+                               maxlength="60"
+                               placeholder="Örn. Milano"
+                               autocomplete="off">
+
+                        <p class="field-error"></p>
+                    </div>
+
+                    <div class="form-field span-2"
+                         data-field="stadium">
+                        <label class="field-label"
+                               for="t-stadium">
+                            Stadyum <span class="req">*</span>
+                        </label>
+
+                        <input class="input-a"
+                               id="t-stadium"
+                               name="Stadium"
+                               type="text"
+                               maxlength="100"
+                               placeholder="Örn. San Siro"
+                               autocomplete="off">
+
+                        <p class="field-error"></p>
+                    </div>
+
+                    <div class="form-field span-2"
+                         data-field="logo">
+                        <label class="field-label"
+                               for="t-logo">
+                            Logo URL <span class="req">*</span>
+                        </label>
+
+                        <input class="input-a"
+                               id="t-logo"
+                               name="LogoUrl"
+                               type="text"
+                               maxlength="200"
+                               placeholder="/images/teams/inter.png"
+                               autocomplete="off">
+
+                        <p class="field-hint">
+                            Örnek: /images/teams/inter.png
+                        </p>
+
+                        <p class="field-error"></p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button"
+                        class="btn-a btn-a--secondary"
+                        data-modal-close>
+                    Vazgeç
+                </button>
+
+                <button type="submit"
+                        class="btn-a btn-a--primary">
+                    Kaydet
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Silme onayı -->
+    <dialog class="modal-a modal-a--sm"
+            id="delete-modal"
+            aria-labelledby="delete-modal-title">
+
+        <form method="post"
+              asp-controller="AdminTeam"
+              asp-action="Delete">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden"
+                   name="id"
+                   id="delete-id">
+
+            <div class="modal-head">
+                <h2 class="modal-title"
+                    id="delete-modal-title">
+                    Takımı sil
+                </h2>
+
+                <button type="button"
+                        class="icon-btn"
+                        data-delete-close
+                        aria-label="Kapat">
+                    <svg class="icon" aria-hidden="true"><use href="#i-x" /></svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <p class="confirm-text"
+                   data-delete-text>
+                </p>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button"
+                        class="btn-a btn-a--secondary"
+                        data-delete-close>
+                    Vazgeç
+                </button>
+
+                <button type="submit"
+                        class="btn-a btn-a--danger">
+                    Evet, sil
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        (() => {
+            'use strict';
+
+            const modal = document.getElementById('team-modal');
+            const form = document.getElementById('team-form');
+            const modalTitle = document.getElementById('team-modal-title');
+            const formAlert = document.querySelector('[data-form-alert]');
+
+            const id = document.getElementById('t-id');
+            const name = document.getElementById('t-name');
+            const city = document.getElementById('t-city');
+            const stadium = document.getElementById('t-stadium');
+            const logo = document.getElementById('t-logo');
+
+            const previewCrest = document.querySelector('[data-preview-crest]');
+            const previewName = document.querySelector('[data-preview-name]');
+            const previewMeta = document.querySelector('[data-preview-meta]');
+
+            function updatePreview() {
+                previewName.textContent = name.value.trim() || 'Takım adı';
+
+                previewMeta.textContent =
+                    [city.value.trim(), stadium.value.trim()]
+                        .filter(Boolean)
+                        .join(', ') || 'Şehir, stadyum';
+
+                if (logo.value.trim()) {
+                    previewCrest.src = logo.value.trim();
+                    previewCrest.style.display = '';
+                } else {
+                    previewCrest.removeAttribute('src');
+                    previewCrest.style.display = 'none';
+                }
+            }
+
+            function clearErrors() {
+                formAlert.classList.remove('is-visible');
+
+                form.querySelectorAll('.has-error')
+                    .forEach(x => x.classList.remove('has-error'));
+
+                form.querySelectorAll('.field-error')
+                    .forEach(x => x.textContent = '');
+            }
+
+            function showError(fieldName, message) {
+                const field = form.querySelector(`[data-field="${fieldName}"]`);
+
+                if (!field)
+                    return;
+
+                field.classList.add('has-error');
+
+                const error = field.querySelector('.field-error');
+
+                if (error)
+                    error.textContent = message;
+            }
+
+            function validateForm() {
+                clearErrors();
+
+                const errors = [];
+
+                if (!name.value.trim())
+                    errors.push(['name', 'Takım adı zorunludur.']);
+
+                if (!city.value.trim())
+                    errors.push(['city', 'Şehir zorunludur.']);
+
+                if (!stadium.value.trim())
+                    errors.push(['stadium', 'Stadyum zorunludur.']);
+
+                if (!logo.value.trim())
+                    errors.push(['logo', 'Logo URL zorunludur.']);
+
+                if (errors.length) {
+                    errors.forEach(x => showError(x[0], x[1]));
+                    formAlert.classList.add('is-visible');
+                    return false;
+                }
+
+                return true;
+            }
+
+            [name, city, stadium, logo].forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+
+            document.querySelector('[data-open-create]')
+                .addEventListener('click', () => {
+                    form.reset();
+                    clearErrors();
+
+                    form.action = '/AdminTeam/Create';
+
+                    id.value = '';
+                    modalTitle.textContent = 'Yeni Takım Ekle';
+
+                    updatePreview();
+
+                    modal.showModal();
+
+                    name.focus();
+                });
+
+            document.querySelectorAll('[data-modal-close]')
+                .forEach(button => {
+                    button.addEventListener('click', () => modal.close());
+                });
+
+            form.addEventListener('submit', event => {
+                if (!validateForm())
+                    event.preventDefault();
+            });
+
+            document.querySelectorAll('[data-edit]')
+                .forEach(button => {
+                    button.addEventListener('click', () => {
+                        clearErrors();
+
+                        const row = button.closest('[data-row]');
+
+                        form.action = '/AdminTeam/Edit';
+
+                        id.value = row.dataset.id;
+                        name.value = row.dataset.name || '';
+                        city.value = row.dataset.city || '';
+                        stadium.value = row.dataset.stadium || '';
+                        logo.value = row.dataset.logo || '';
+
+                        modalTitle.textContent = 'Takımı Düzenle';
+
+                        updatePreview();
+
+                        modal.showModal();
+
+                        name.focus();
+                    });
+                });
+
+            const deleteModal = document.getElementById('delete-modal');
+            const deleteId = document.getElementById('delete-id');
+            const deleteText = document.querySelector('[data-delete-text]');
+
+            document.querySelectorAll('[data-delete]')
+                .forEach(button => {
+                    button.addEventListener('click', () => {
+                        const row = button.closest('[data-row]');
+
+                        deleteId.value = row.dataset.id;
+
+                        deleteText.innerHTML =
+                            `<strong>${row.dataset.name}</strong> takımı silinecek. ` +
+                            `Takıma bağlı maç kayıtları varsa API bu işlemi engelleyebilir.`;
+
+                        deleteModal.showModal();
+                    });
+                });
+
+            document.querySelectorAll('[data-delete-close]')
+                .forEach(button => {
+                    button.addEventListener('click', () => deleteModal.close());
+                });
+
+            const filterForm = document.querySelector('[data-filter-form]');
+            const filterReset = document.querySelector('[data-filter-reset]');
+            const rows = [...document.querySelectorAll('[data-row]')];
+            const resultCount = document.querySelector('[data-result-count]');
+
+            filterForm.addEventListener('submit', event => {
+                event.preventDefault();
+
+                const q = document.getElementById('f-q')
+                    .value.trim()
+                    .toLowerCase();
+
+                const cityFilter = document.getElementById('f-city')
+                    .value;
+
+                const logoFilter = document.getElementById('f-logo')
+                    .value;
+
+                let visible = 0;
+
+                rows.forEach(row => {
+                    const matchesText =
+                        !q || row.dataset.search.includes(q);
+
+                    const matchesCity =
+                        !cityFilter ||
+                        (row.dataset.city || '').toLowerCase() === cityFilter;
+
+                    const matchesLogo =
+                        !logoFilter ||
+                        row.dataset.hasLogo === logoFilter;
+
+                    const show =
+                        matchesText &&
+                        matchesCity &&
+                        matchesLogo;
+
+                    row.hidden = !show;
+
+                    if (show)
+                        visible++;
+                });
+
+                resultCount.textContent =
+                    `@teams.Count takımdan ${visible} tanesi gösteriliyor`;
+            });
+
+            filterReset.addEventListener('click', () => {
+                filterForm.reset();
+
+                rows.forEach(row => row.hidden = false);
+
+                resultCount.textContent =
+                    '@teams.Count takımdan @teams.Count tanesi gösteriliyor';
+            });
+
+            const toggleButton =
+                document.querySelector('[data-sidebar-toggle]');
+
+            const sidebarBackdrop =
+                document.querySelector('[data-sidebar-close]');
+
+            function setSidebar(open) {
+                document.body.classList.toggle('sidebar-open', open);
+
+                toggleButton?.setAttribute(
+                    'aria-expanded',
+                    String(open)
+                );
+            }
+
+            toggleButton?.addEventListener('click', () => {
+                setSidebar(
+                    !document.body.classList.contains('sidebar-open')
+                );
+            });
+
+            sidebarBackdrop?.addEventListener('click', () => {
+                setSidebar(false);
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    if (modal.open)
+                        modal.close();
+
+                    if (deleteModal.open)
+                        deleteModal.close();
+
+                    setSidebar(false);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

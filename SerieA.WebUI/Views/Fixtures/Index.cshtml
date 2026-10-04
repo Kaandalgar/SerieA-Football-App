@@ -1,0 +1,886 @@
+﻿@model List<SerieA.WebUI.ViewModels.MatchViewModel>
+
+@{
+    ViewData["Title"] = "Serie A Fikstür";
+
+
+    var matches = Model ?? new List<SerieA.WebUI.ViewModels.MatchViewModel>();
+    int week = ViewBag.Week != null ? (int)ViewBag.Week : 1;
+
+    var orderedMatches = matches
+        .OrderBy(x => x.MatchDate)
+        .ThenBy(x => x.Id)
+        .ToList();
+
+    var groupedMatches = orderedMatches
+        .GroupBy(x => x.MatchDate.Date)
+        .ToList();
+
+    var playedMatches = matches
+        .Where(x =>
+            (x.Status == "Finished" || x.Status == "Live") &&
+            x.HomeScore.HasValue &&
+            x.AwayScore.HasValue)
+        .ToList();
+
+    var finishedMatches = matches
+        .Where(x =>
+            x.Status == "Finished" &&
+            x.HomeScore.HasValue &&
+            x.AwayScore.HasValue)
+        .ToList();
+
+    int goals = playedMatches.Sum(x => (x.HomeScore ?? 0) + (x.AwayScore ?? 0));
+    int draws = finishedMatches.Count(x => x.HomeScore == x.AwayScore);
+    int homeWins = finishedMatches.Count(x => x.HomeScore > x.AwayScore);
+    int awayWins = finishedMatches.Count(x => x.HomeScore < x.AwayScore);
+    int liveCount = matches.Count(x => x.Status == "Live");
+
+    double avgGoals = playedMatches.Count > 0
+        ? (double)goals / playedMatches.Count
+        : 0;
+
+    var featuredMatch = matches
+        .OrderByDescending(x => (x.HomeScore ?? 0) + (x.AwayScore ?? 0))
+        .ThenBy(x => x.MatchDate)
+        .FirstOrDefault();
+
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+
+    string StatusText(string status)
+    {
+        return status switch
+        {
+            "Finished" => "Maç bitti",
+            "Live" => "Canlı",
+            "Postponed" => "Ertelendi",
+            _ => "Başlamadı"
+        };
+    }
+
+    string ShortName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "---";
+
+        return name.Length >= 3
+            ? name.Substring(0, 3).ToUpperInvariant()
+            : name.ToUpperInvariant();
+    }
+
+    string WeekRange()
+    {
+        if (!matches.Any())
+            return "Tarih bilgisi yok";
+
+        var first = matches.Min(x => x.MatchDate);
+        var last = matches.Max(x => x.MatchDate);
+
+        return $"{first.ToString("d MMMM", tr)} – {last.ToString("d MMMM yyyy", tr)}";
+    }
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fixtures.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+}
+
+<div class="fixtures-page">
+
+    <main class="fixtures-shell container-xl"
+          data-fixtures-page
+          data-current-week="@week">
+
+        <!-- ===== Hero ===== -->
+        <header class="fixtures-hero">
+
+            <div class="hero-league">
+                <span class="hero-league__name">
+
+    <img src="~/images/seriea-logo.png"
+         alt="Serie A Logo"
+         class="league-logo" />
+
+    <span>İtalya, Serie A</span>
+
+</span>
+
+                <label class="season-select">
+                    <span class="visually-hidden">Sezon</span>
+
+                    <select aria-label="Sezon seç">
+                        <option selected>2026/27</option>
+                    </select>
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </label>
+            </div>
+
+            <div class="hero-row">
+
+                <div>
+                    <h1 class="hero-title">Serie A Fikstür</h1>
+
+                    <p class="hero-subtitle">
+                        Haftayı seç, o haftanın tüm maçlarını gün gün, skor ve durum bilgisiyle gör.
+                    </p>
+                </div>
+
+                <dl class="hero-meta">
+
+                    <div>
+                        <dt>Takım</dt>
+                        <dd>20</dd>
+                    </div>
+
+                    <div>
+                        <dt>Hafta</dt>
+                        <dd>3</dd>
+                    </div>
+
+                    <div>
+                        <dt>Güncel hafta</dt>
+                        <dd>@week</dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+        </header>
+
+        <!-- ===== Hafta seçici ===== -->
+        <nav class="week-nav" aria-label="Hafta seçici">
+
+            @if (week > 1)
+{
+    <a class="week-arrow"
+       asp-controller="Fixtures"
+       asp-action="Index"
+       asp-route-week="@(week - 1)"
+       aria-label="Önceki hafta">
+
+        <svg viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2.2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" />
+        </svg>
+
+    </a>
+}
+else
+{
+    <button type="button"
+            class="week-arrow"
+            disabled
+            aria-label="Önceki hafta">
+
+        <svg viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2.2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" />
+        </svg>
+
+    </button>
+}
+
+            @{
+    int startWeek = week - 1;
+    int endWeek = week + 1;
+
+    if (startWeek < 1)
+    {
+        startWeek = 1;
+        endWeek = 3;
+    }
+
+    if (endWeek > 38)
+    {
+        endWeek = 38;
+        startWeek = 36;
+    }
+}
+
+<ul class="week-list">
+
+    @for (int i = startWeek; i <= endWeek; i++)
+    {
+        <li>
+            <a class="week-btn"
+               asp-controller="Fixtures"
+               asp-action="Index"
+               asp-route-week="@i"
+               aria-pressed="@(week == i ? "true" : "false")">
+
+                <span class="week-btn__top">
+
+                    <span class="week-btn__title">
+                        @i. Hafta
+                    </span>
+
+                    @if (week == i)
+                    {
+                        <span class="week-tag week-tag--active"
+                              style="display:inline-block;">
+                            Aktif hafta
+                        </span>
+                    }
+
+                </span>
+
+                <span class="week-btn__range">
+                    @(week == i ? WeekRange() : "Haftayı görüntüle")
+                </span>
+
+            </a>
+        </li>
+    }
+
+</ul>
+
+            @if (week < 38)
+            {
+                <a class="week-arrow"
+                   asp-controller="Fixtures"
+                   asp-action="Index"
+                   asp-route-week="@(week + 1)"
+                   aria-label="Sonraki hafta">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M9 6l6 6-6 6" />
+                    </svg>
+
+                </a>
+            }
+            else
+            {
+                <button type="button"
+                        class="week-arrow"
+                        disabled
+                        aria-label="Sonraki hafta">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M9 6l6 6-6 6" />
+                    </svg>
+
+                </button>
+            }
+
+        </nav>
+
+        <!-- ===== Aktif hafta bilgisi ===== -->
+        <section class="panel week-info" aria-live="polite">
+
+            <div>
+                <h2 class="week-info__title">
+                    @week. Hafta
+                </h2>
+
+                <p class="week-info__range">
+                    @WeekRange()
+                </p>
+            </div>
+
+            <ul class="week-facts">
+
+                <li>
+                    <strong>@matches.Count</strong>
+                    maç
+                </li>
+
+                <li>
+                    <strong>20</strong>
+                    takım
+                </li>
+
+                <li>
+                    <strong>@goals</strong>
+                    gol
+                </li>
+
+                @if (liveCount > 0)
+                {
+                    <li>
+                        <strong>@liveCount</strong>
+                        canlı
+                    </li>
+                }
+
+            </ul>
+
+            <div class="week-progress">
+
+                <div class="week-progress__head">
+
+                    <span>Hafta ilerlemesi</span>
+
+                    <strong>
+                        @(finishedMatches.Count == matches.Count && matches.Count > 0
+                            ? "Hafta tamamlandı"
+                            : $"{finishedMatches.Count} / {matches.Count} maç tamamlandı")
+                    </strong>
+
+                </div>
+
+                <div class="week-progress__bar" aria-hidden="true">
+
+                    @foreach (var item in orderedMatches)
+                    {
+                        <span class="seg seg--@item.Status"
+                              title="@item.HomeTeam?.Name - @item.AwayTeam?.Name">
+                        </span>
+                    }
+
+                </div>
+
+                <div class="week-progress__legend" aria-hidden="true">
+
+                    <span>
+                        <i style="background:rgba(31,201,138,.6)"></i>
+                        Bitti
+                    </span>
+
+                    <span>
+                        <i style="background:var(--green)"></i>
+                        Canlı
+                    </span>
+
+                    <span>
+                        <i></i>
+                        Başlamadı
+                    </span>
+
+                    <span>
+                        <i style="background:var(--amber)"></i>
+                        Ertelendi
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ===== İçerik ===== -->
+        <div class="fixtures-body">
+
+            <div class="row g-4">
+
+                <div class="col-lg-8">
+
+                    <section class="panel"
+                             aria-labelledby="fixtures-title">
+
+                        <div class="panel__head">
+
+                            <h2 class="panel__title"
+                                id="fixtures-title">
+                                Haftanın maçları
+                            </h2>
+
+                            <span class="panel__sub">
+                                Saatler Türkiye saatine göre
+                            </span>
+
+                        </div>
+
+                        <div class="fixtures-list">
+
+                            @if (!matches.Any())
+                            {
+                                <p class="page-note">
+                                    Bu hafta için henüz fikstür yayımlanmadı.
+                                </p>
+                            }
+                            else
+                            {
+                                @foreach (var day in groupedMatches)
+                                {
+                                    <section class="day-group"
+                                             aria-label="@day.Key.ToString("d MMMM dddd", tr)">
+
+                                        <div class="day-head">
+
+                                            <h3 class="day-head__date">
+                                                @day.Key.ToString("d MMMM dddd", tr)
+                                            </h3>
+
+                                            <span class="day-head__count">
+                                                @day.Count() maç
+                                            </span>
+
+                                        </div>
+
+                                        <ul class="day-list">
+
+                                            @foreach (var item in day)
+                                            {
+                                                bool hasScore =
+                                                    item.HomeScore.HasValue &&
+                                                    item.AwayScore.HasValue &&
+                                                    (item.Status == "Finished" ||
+                                                     item.Status == "Live");
+
+                                                bool homeWon =
+                                                    item.Status == "Finished" &&
+                                                    hasScore &&
+                                                    item.HomeScore > item.AwayScore;
+
+                                                bool awayWon =
+                                                    item.Status == "Finished" &&
+                                                    hasScore &&
+                                                    item.AwayScore > item.HomeScore;
+
+                                                <li>
+
+                                                    <article class="fixture-card fixture-card--@item.Status @(item.Status == "Finished" || item.Status == "Live" ? "is-linked" : "")"
+                                                             data-match-id="@item.Id"
+                                                             data-match-status="@item.Status">
+
+                                                        <!-- Saat / durum -->
+                                                        <div class="fx-meta">
+
+                                                            <time class="fx-time"
+                                                                  datetime="@item.MatchDate.ToString("s")">
+                                                                @item.MatchDate.ToString("HH:mm")
+                                                            </time>
+
+                                                            <span class="status status--@item.Status">
+                                                                @StatusText(item.Status)
+                                                            </span>
+
+                                                        </div>
+
+                                                        <!-- Ev sahibi -->
+                                                        <div class="fx-team fx-team--home @(homeWon ? "is-winner" : "")">
+
+                                                            <span class="fx-name">
+                                                                @item.HomeTeam?.Name
+                                                            </span>
+
+                                                            @if (!string.IsNullOrWhiteSpace(item.HomeTeam?.LogoUrl))
+                                                            {
+                                                                <img class="team-crest"
+                                                                     src="@Url.Content(item.HomeTeam.LogoUrl)"
+                                                                     alt="@item.HomeTeam.Name" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="team-crest"
+                                                                      style="--crest-a:#2E7BFF;--crest-b:#101418;--crest-ink:#fff"
+                                                                      aria-hidden="true">
+                                                                    @ShortName(item.HomeTeam?.Name)
+                                                                </span>
+                                                            }
+
+                                                        </div>
+
+                                                        <!-- Skor -->
+                                                        @if (hasScore)
+                                                        {
+                                                            <div class="fx-score"
+                                                                 aria-label="Skor @item.HomeScore-@item.AwayScore">
+
+                                                                <span>
+                                                                    @item.HomeScore
+                                                                </span>
+
+                                                                <span class="fx-score__sep"
+                                                                      aria-hidden="true">
+                                                                </span>
+
+                                                                <span>
+                                                                    @item.AwayScore
+                                                                </span>
+
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="fx-score fx-score--empty"
+                                                                 aria-label="Skor yok">
+                                                                -
+                                                            </div>
+                                                        }
+
+                                                        <!-- Deplasman -->
+                                                        <div class="fx-team fx-team--away @(awayWon ? "is-winner" : "")">
+
+                                                            @if (!string.IsNullOrWhiteSpace(item.AwayTeam?.LogoUrl))
+                                                            {
+                                                                <img class="team-crest"
+                                                                     src="@Url.Content(item.AwayTeam.LogoUrl)"
+                                                                     alt="@item.AwayTeam.Name" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="team-crest"
+                                                                      style="--crest-a:#5B9BFF;--crest-b:#101418;--crest-ink:#fff"
+                                                                      aria-hidden="true">
+                                                                    @ShortName(item.AwayTeam?.Name)
+                                                                </span>
+                                                            }
+
+                                                            <span class="fx-name">
+                                                                @item.AwayTeam?.Name
+                                                            </span>
+
+                                                        </div>
+
+                                                        <!-- Aksiyon -->
+                                                        <div class="fx-action">
+
+                                                            @if (item.Status == "Finished")
+                                                            {
+                                                                <a class="fx-link"
+                                                                   href="/Match/Detail/@item.Id">
+
+                                                                    Maç detayı
+
+                                                                    <svg viewBox="0 0 24 24"
+                                                                         fill="none"
+                                                                         stroke="currentColor"
+                                                                         stroke-width="2.4"
+                                                                         stroke-linecap="round"
+                                                                         stroke-linejoin="round"
+                                                                         aria-hidden="true">
+                                                                        <path d="M9 6l6 6-6 6" />
+                                                                    </svg>
+
+                                                                </a>
+                                                            }
+                                                            else if (item.Status == "Live")
+                                                            {
+                                                                <a class="fx-link"
+                                                                   href="/Match/Detail/@item.Id">
+
+                                                                    Canlı takip
+
+                                                                    <svg viewBox="0 0 24 24"
+                                                                         fill="none"
+                                                                         stroke="currentColor"
+                                                                         stroke-width="2.4"
+                                                                         stroke-linecap="round"
+                                                                         stroke-linejoin="round"
+                                                                         aria-hidden="true">
+                                                                        <path d="M9 6l6 6-6 6" />
+                                                                    </svg>
+
+                                                                </a>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>
+                                                                    @item.Stadium
+                                                                </span>
+                                                            }
+
+                                                        </div>
+
+                                                    </article>
+
+                                                </li>
+                                            }
+
+                                        </ul>
+
+                                    </section>
+                                }
+                            }
+
+                        </div>
+
+                    </section>
+
+                </div>
+
+                <!-- ===== Sağ panel ===== -->
+                <aside class="col-lg-4"
+                       aria-label="Haftanın özeti ve öne çıkan maç">
+
+                    <div class="side-stack">
+
+                        <!-- Hafta özeti -->
+                        <section class="panel"
+                                 aria-labelledby="summary-title">
+
+                            <div class="panel__head">
+
+                                <h2 class="panel__title"
+                                    id="summary-title">
+                                    @week. Hafta özeti
+                                </h2>
+
+                            </div>
+
+                            <dl class="summary-list">
+
+                                <div>
+                                    <dt>Maç</dt>
+                                    <dd>@matches.Count</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Tamamlanan</dt>
+                                    <dd>@finishedMatches.Count</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Gol</dt>
+                                    <dd>@goals</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Maç başına gol</dt>
+                                    <dd>@avgGoals.ToString("0.00").Replace(".", ",")</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Beraberlik</dt>
+                                    <dd>@draws</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Ev sahibi galibiyeti</dt>
+                                    <dd>@homeWins</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Deplasman galibiyeti</dt>
+                                    <dd>@awayWins</dd>
+                                </div>
+
+                            </dl>
+
+                            <div class="result-split">
+
+                                <span class="result-split__title">
+                                    Sonuç dağılımı
+                                </span>
+
+                                @if (finishedMatches.Any())
+                                {
+                                    <div class="result-split__bar"
+                                         aria-hidden="true">
+
+                                        <span class="r-home"
+                                              style="flex:@homeWins">
+                                        </span>
+
+                                        <span class="r-draw"
+                                              style="flex:@draws">
+                                        </span>
+
+                                        <span class="r-away"
+                                              style="flex:@awayWins">
+                                        </span>
+
+                                    </div>
+
+                                    <div class="result-split__legend">
+
+                                        <span>
+                                            <i style="background:var(--blue)"></i>
+                                            Ev @homeWins
+                                        </span>
+
+                                        <span>
+                                            <i style="background:var(--dim)"></i>
+                                            Beraberlik @draws
+                                        </span>
+
+                                        <span>
+                                            <i style="background:var(--ice)"></i>
+                                            Deplasman @awayWins
+                                        </span>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                            <p class="summary-note">
+                                Gol sayısı oynanmış maçlardan, sonuç dağılımı yalnızca biten maçlardan hesaplanır.
+                            </p>
+
+                        </section>
+
+                        <!-- Öne çıkan maç -->
+                        @if (featuredMatch != null)
+                        {
+                            bool featuredHasScore =
+                                featuredMatch.HomeScore.HasValue &&
+                                featuredMatch.AwayScore.HasValue &&
+                                (featuredMatch.Status == "Finished" ||
+                                 featuredMatch.Status == "Live");
+
+                            <section class="panel featured"
+                                     aria-labelledby="featured-title">
+
+                                <div class="panel__head">
+
+                                    <h2 class="panel__title"
+                                        id="featured-title">
+                                        Haftanın öne çıkan maçı
+                                    </h2>
+
+                                </div>
+
+                                <div class="featured__body">
+
+                                    <div class="featured__teams">
+
+                                        <div class="featured__team">
+
+                                            @if (!string.IsNullOrWhiteSpace(featuredMatch.HomeTeam?.LogoUrl))
+                                            {
+                                                <img class="team-crest team-crest--lg"
+                                                     src="@Url.Content(featuredMatch.HomeTeam.LogoUrl)"
+                                                     alt="@featuredMatch.HomeTeam.Name" />
+                                            }
+                                            else
+                                            {
+                                                <span class="team-crest team-crest--lg"
+                                                      style="--crest-a:#2E7BFF;--crest-b:#101418;--crest-ink:#fff">
+                                                    @ShortName(featuredMatch.HomeTeam?.Name)
+                                                </span>
+                                            }
+
+                                            <span>
+                                                @featuredMatch.HomeTeam?.Name
+                                            </span>
+
+                                        </div>
+
+                                        @if (featuredHasScore)
+                                        {
+                                            <span class="featured__score">
+                                                @featuredMatch.HomeScore-@featuredMatch.AwayScore
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="featured__score featured__score--vs">
+                                                vs
+                                            </span>
+                                        }
+
+                                        <div class="featured__team">
+
+                                            @if (!string.IsNullOrWhiteSpace(featuredMatch.AwayTeam?.LogoUrl))
+                                            {
+                                                <img class="team-crest team-crest--lg"
+                                                     src="@Url.Content(featuredMatch.AwayTeam.LogoUrl)"
+                                                     alt="@featuredMatch.AwayTeam.Name" />
+                                            }
+                                            else
+                                            {
+                                                <span class="team-crest team-crest--lg"
+                                                      style="--crest-a:#5B9BFF;--crest-b:#101418;--crest-ink:#fff">
+                                                    @ShortName(featuredMatch.AwayTeam?.Name)
+                                                </span>
+                                            }
+
+                                            <span>
+                                                @featuredMatch.AwayTeam?.Name
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                    <ul class="featured__info">
+
+                                        <li>
+                                            @featuredMatch.Stadium
+                                        </li>
+
+                                        <li>
+                                            <span>
+                                                @featuredMatch.MatchDate.ToString("dddd, d MMMM", tr)
+                                            </span>
+
+                                            @featuredMatch.MatchDate.ToString("HH:mm")
+                                        </li>
+
+                                    </ul>
+
+                                    <div class="featured__foot">
+
+                                        <span class="status status--@featuredMatch.Status">
+                                            @StatusText(featuredMatch.Status)
+                                        </span>
+
+                                        @if (featuredMatch.Status == "Finished" ||
+                                             featuredMatch.Status == "Live")
+                                        {
+                                            <a class="fx-link"
+                                               href="/Match/Detail/@featuredMatch.Id">
+
+                                                Maç detayı
+
+                                                <svg viewBox="0 0 24 24"
+                                                     fill="none"
+                                                     stroke="currentColor"
+                                                     stroke-width="2.4"
+                                                     stroke-linecap="round"
+                                                     stroke-linejoin="round"
+                                                     aria-hidden="true">
+                                                    <path d="M9 6l6 6-6 6" />
+                                                </svg>
+
+                                            </a>
+                                        }
+
+                                    </div>
+
+                                </div>
+
+                            </section>
+                        }
+
+                    </div>
+
+                </aside>
+
+            </div>
+
+        </div>
+
+        <p class="page-note">
+            Veriler SerieA API üzerinden alınmaktadır.
+        </p>
+
+    </main>
+
+</div>

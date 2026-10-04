@@ -1,0 +1,767 @@
+﻿@model List<SerieA.WebUI.ViewModels.StandingViewModel>
+
+@{
+    ViewData["Title"] = "Serie A Puan Durumu";
+
+
+    var standings = Model ?? new List<SerieA.WebUI.ViewModels.StandingViewModel>();
+
+    var leader = standings.FirstOrDefault();
+    var bestAttack = standings
+        .OrderByDescending(x => x.GoalsFor)
+        .ThenByDescending(x => x.Points)
+        .FirstOrDefault();
+
+    var bestDefence = standings
+        .OrderBy(x => x.GoalsAgainst)
+        .ThenByDescending(x => x.Points)
+        .FirstOrDefault();
+
+    var relegationStart = standings.FirstOrDefault(x => x.Position == 18);
+
+    var maxPoints = standings.Any()
+        ? Math.Max(standings.Max(x => x.Points), 1)
+        : 1;
+
+    var pointStacks = new Dictionary<int, int>();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/standings.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+}
+
+<div class="standings-page">
+    <main class="standings-shell container-xl" data-standings>
+
+       <!-- HERO -->
+<header class="standings-hero">
+
+    <div class="hero-top">
+
+        <div>
+            <div class="hero-league">
+    <img src="~/images/seriea-logo.png" alt="Serie A Logo" class="league-logo" />
+    <span>İtalya, Serie A</span>
+</div>
+
+            <h1 class="hero-title">
+                Serie A Puan Durumu
+            </h1>
+
+            <p class="hero-subtitle">
+                3. hafta sonunda güncel sıralama, gol dengesi ve takım performansları.
+            </p>
+
+            <a asp-controller="Fixtures"
+               asp-action="Index"
+               class="hero-fixtures-btn">
+                Fikstüre Git
+            </a>
+        </div>
+
+        <dl class="hero-meta">
+            <div>
+                <dt>Sezon</dt>
+                <dd>2026/27</dd>
+            </div>
+
+            <div>
+                <dt>Hafta</dt>
+                <dd>3</dd>
+            </div>
+
+            <div>
+                <dt>Takım sayısı</dt>
+                <dd>@standings.Count</dd>
+            </div>
+        </dl>
+
+    </div>
+
+    <!-- PUAN DAĞILIMI -->
+    <section class="points-ladder" aria-labelledby="ladder-title">
+
+            <!-- PUAN DAĞILIMI -->
+            <section class="points-ladder" aria-labelledby="ladder-title">
+                <div class="ladder-head">
+                    <h2 class="ladder-title" id="ladder-title">Puan dağılımı</h2>
+                    <p class="ladder-hint">Bir takıma dokunarak tabloda vurgula</p>
+                </div>
+
+                <div class="ladder-scroll">
+                    <div class="ladder-track">
+                        <span class="ladder-axis" aria-hidden="true"></span>
+
+                        <span class="ladder-tick" style="--x:0%">0</span>
+                        <span class="ladder-tick" style="--x:25%">@Math.Round(maxPoints * 0.25)</span>
+                        <span class="ladder-tick" style="--x:50%">@Math.Round(maxPoints * 0.50)</span>
+                        <span class="ladder-tick" style="--x:75%">@Math.Round(maxPoints * 0.75)</span>
+                        <span class="ladder-tick" style="--x:100%">@maxPoints</span>
+
+                        @foreach (var item in standings.OrderBy(x => x.Points).ThenBy(x => x.Position))
+                        {
+                            var zone = item.Position <= 4
+                                ? "ucl"
+                                : item.Position <= 6
+                                    ? "europe"
+                                    : item.Position >= 18
+                                        ? "rel"
+                                        : "mid";
+
+                            var zoneClass = item.Position <= 4
+                                ? "zone-ucl"
+                                : item.Position <= 6
+                                    ? "zone-europe"
+                                    : item.Position >= 18
+                                        ? "zone-rel"
+                                        : "";
+
+                            var teamKey = item.TeamName
+                                .ToLowerInvariant()
+                                .Replace(" ", "-");
+
+                            var shortName = item.TeamName.Length >= 3
+                                ? item.TeamName.Substring(0, 3).ToUpperInvariant()
+                                : item.TeamName.ToUpperInvariant();
+
+                            var x = Math.Clamp((double)item.Points / maxPoints * 100.0, 2.0, 98.0);
+
+                            if (!pointStacks.ContainsKey(item.Points))
+                            {
+                                pointStacks[item.Points] = 0;
+                            }
+
+                            var stack = pointStacks[item.Points];
+                            pointStacks[item.Points]++;
+
+                            <button type="button"
+                                    class="ladder-marker @zoneClass"
+                                    style="--x:@x.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%; --stack:@stack"
+                                    data-ladder-team="@teamKey"
+                                    aria-pressed="false"
+                                    aria-label="@item.TeamName, @item.Position. sıra, @item.Points puan"
+                                    title="@item.TeamName - @item.Points puan">
+
+                                @if (!string.IsNullOrWhiteSpace(item.LogoUrl))
+                                {
+                                    <img src="@Url.Content(item.LogoUrl)"
+                                         class="ladder-logo"
+                                         alt="@item.TeamName" />
+                                }
+                                else
+                                {
+                                    <span class="ladder-fallback">@shortName</span>
+                                }
+
+                                <span class="ladder-points">@item.Points</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </section>
+        </header>
+
+        <!-- ÖZET KARTLAR -->
+        <section class="summary-section" aria-label="Haftanın öne çıkanları">
+            <div class="row g-3">
+
+                <div class="col-sm-6 col-xl-3">
+                    <article class="stat-card stat-card--leader">
+                        <div class="stat-card__icon">🏆</div>
+
+                        <div class="stat-card__body">
+                            <p class="stat-card__label">Lider</p>
+
+                            @if (leader != null)
+                            {
+                                <p class="stat-card__team">
+                                    @if (!string.IsNullOrWhiteSpace(leader.LogoUrl))
+                                    {
+                                        <img src="@Url.Content(leader.LogoUrl)"
+                                             class="team-logo team-logo--sm"
+                                             alt="@leader.TeamName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="team-crest team-crest--sm">
+                                            @(leader.TeamName.Length >= 3 ? leader.TeamName.Substring(0, 3).ToUpperInvariant() : leader.TeamName.ToUpperInvariant())
+                                        </span>
+                                    }
+
+                                    @leader.TeamName
+                                </p>
+
+                                <p class="stat-card__note">Güncel puan lideri</p>
+                            }
+                        </div>
+
+                        <p class="stat-card__value">
+                            @(leader?.Points ?? 0)
+                            <small>puan</small>
+                        </p>
+                    </article>
+                </div>
+
+                <div class="col-sm-6 col-xl-3">
+                    <article class="stat-card stat-card--attack">
+                        <div class="stat-card__icon">⚽</div>
+
+                        <div class="stat-card__body">
+                            <p class="stat-card__label">En çok gol atan</p>
+
+                            @if (bestAttack != null)
+                            {
+                                <p class="stat-card__team">
+                                    @if (!string.IsNullOrWhiteSpace(bestAttack.LogoUrl))
+                                    {
+                                        <img src="@Url.Content(bestAttack.LogoUrl)"
+                                             class="team-logo team-logo--sm"
+                                             alt="@bestAttack.TeamName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="team-crest team-crest--sm">
+                                            @(bestAttack.TeamName.Length >= 3 ? bestAttack.TeamName.Substring(0, 3).ToUpperInvariant() : bestAttack.TeamName.ToUpperInvariant())
+                                        </span>
+                                    }
+
+                                    @bestAttack.TeamName
+                                </p>
+
+                                <p class="stat-card__note">
+                                    Maç başına @(bestAttack.Played > 0
+                                        ? ((double)bestAttack.GoalsFor / bestAttack.Played).ToString("0.00")
+                                        : "0.00") gol
+                                </p>
+                            }
+                        </div>
+
+                        <p class="stat-card__value">
+                            @(bestAttack?.GoalsFor ?? 0)
+                            <small>gol</small>
+                        </p>
+                    </article>
+                </div>
+
+                <div class="col-sm-6 col-xl-3">
+                    <article class="stat-card stat-card--defence">
+                        <div class="stat-card__icon">🛡️</div>
+
+                        <div class="stat-card__body">
+                            <p class="stat-card__label">En az gol yiyen</p>
+
+                            @if (bestDefence != null)
+                            {
+                                <p class="stat-card__team">
+                                    @if (!string.IsNullOrWhiteSpace(bestDefence.LogoUrl))
+                                    {
+                                        <img src="@Url.Content(bestDefence.LogoUrl)"
+                                             class="team-logo team-logo--sm"
+                                             alt="@bestDefence.TeamName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="team-crest team-crest--sm">
+                                            @(bestDefence.TeamName.Length >= 3 ? bestDefence.TeamName.Substring(0, 3).ToUpperInvariant() : bestDefence.TeamName.ToUpperInvariant())
+                                        </span>
+                                    }
+
+                                    @bestDefence.TeamName
+                                </p>
+
+                                <p class="stat-card__note">
+                                    Maç başına @(bestDefence.Played > 0
+                                        ? ((double)bestDefence.GoalsAgainst / bestDefence.Played).ToString("0.00")
+                                        : "0.00") gol
+                                </p>
+                            }
+                        </div>
+
+                        <p class="stat-card__value">
+                            @(bestDefence?.GoalsAgainst ?? 0)
+                            <small>gol</small>
+                        </p>
+                    </article>
+                </div>
+
+                <div class="col-sm-6 col-xl-3">
+                    <article class="stat-card stat-card--danger">
+                        <div class="stat-card__icon">↘</div>
+
+                        <div class="stat-card__body">
+                            <p class="stat-card__label">Düşme hattı başlangıcı</p>
+
+                            @if (relegationStart != null)
+                            {
+                                <p class="stat-card__team">
+                                    @if (!string.IsNullOrWhiteSpace(relegationStart.LogoUrl))
+                                    {
+                                        <img src="@Url.Content(relegationStart.LogoUrl)"
+                                             class="team-logo team-logo--sm"
+                                             alt="@relegationStart.TeamName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="team-crest team-crest--sm">
+                                            @(relegationStart.TeamName.Length >= 3 ? relegationStart.TeamName.Substring(0, 3).ToUpperInvariant() : relegationStart.TeamName.ToUpperInvariant())
+                                        </span>
+                                    }
+
+                                    @relegationStart.TeamName
+                                </p>
+
+                                <p class="stat-card__note">@relegationStart.Points puan</p>
+                            }
+                        </div>
+
+                        <p class="stat-card__value">
+                            @(relegationStart?.Position ?? 18).
+                            <small>sıra</small>
+                        </p>
+                    </article>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ANA ALAN -->
+        <div class="standings-body">
+            <div class="row g-4">
+
+                <div class="col-xl-9">
+                    <section class="table-panel" aria-labelledby="table-title">
+
+                        <div class="table-toolbar">
+                            <h2 class="table-toolbar__title" id="table-title">Genel sıralama</h2>
+
+                            <div class="table-toolbar__controls">
+                                <div class="zone-filter" role="group" aria-label="Bölgeye göre filtrele">
+                                    <button type="button" class="zone-chip zone-chip--all"
+                                            data-zone-filter="all" aria-pressed="true">
+                                        Tümü
+                                    </button>
+
+                                    <button type="button" class="zone-chip zone-chip--ucl"
+                                            data-zone-filter="ucl" aria-pressed="false">
+                                        Şampiyonlar Ligi
+                                    </button>
+
+                                    <button type="button" class="zone-chip zone-chip--europe"
+                                            data-zone-filter="europe" aria-pressed="false">
+                                        Avrupa
+                                    </button>
+
+                                    <button type="button" class="zone-chip zone-chip--rel"
+                                            data-zone-filter="rel" aria-pressed="false">
+                                        Düşme hattı
+                                    </button>
+                                </div>
+
+                                <label class="team-search">
+                                    <span class="visually-hidden">Takım ara</span>
+                                    <span class="team-search__icon">⌕</span>
+                                    <input type="search"
+                                           placeholder="Takım ara"
+                                           autocomplete="off"
+                                           data-team-search />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="standings-table-wrap">
+                            <table class="standings-table">
+                                <caption class="visually-hidden">
+                                    Serie A 2026/27, 3. hafta puan durumu
+                                </caption>
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="col-pos">#</th>
+                                        <th scope="col" class="col-team">Takım</th>
+                                        <th scope="col" class="col-num"><abbr title="Oynanan maç">O</abbr></th>
+                                        <th scope="col" class="col-num"><abbr title="Galibiyet">G</abbr></th>
+                                        <th scope="col" class="col-num"><abbr title="Beraberlik">B</abbr></th>
+                                        <th scope="col" class="col-num"><abbr title="Mağlubiyet">M</abbr></th>
+                                        <th scope="col" class="col-num col-hide-sm"><abbr title="Atılan gol">AG</abbr></th>
+                                        <th scope="col" class="col-num col-hide-sm"><abbr title="Yenilen gol">YG</abbr></th>
+                                        <th scope="col" class="col-gd"><abbr title="Averaj">AV</abbr></th>
+                                        <th scope="col" class="col-pts">Puan</th>
+                                        <th scope="col" class="col-form">Son 3 maç</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach (var item in standings)
+                                    {
+                                        var zone = item.Position <= 4
+                                            ? "ucl"
+                                            : item.Position <= 6
+                                                ? "europe"
+                                                : item.Position >= 18
+                                                    ? "rel"
+                                                    : "mid";
+
+                                        var zoneClass = item.Position <= 4
+                                            ? "zone-ucl"
+                                            : item.Position <= 6
+                                                ? "zone-europe"
+                                                : item.Position >= 18
+                                                    ? "zone-rel"
+                                                    : "";
+
+                                        var edgeClass = item.Position == 4
+                                            ? "edge-ucl"
+                                            : item.Position == 6
+                                                ? "edge-europe"
+                                                : item.Position == 17
+                                                    ? "edge-rel"
+                                                    : "";
+
+                                        var teamKey = item.TeamName
+                                            .ToLowerInvariant()
+                                            .Replace(" ", "-");
+
+                                        var shortName = item.TeamName.Length >= 3
+                                            ? item.TeamName.Substring(0, 3).ToUpperInvariant()
+                                            : item.TeamName.ToUpperInvariant();
+
+                                        <tr class="standings-row @zoneClass @edgeClass"
+                                            data-team="@teamKey"
+                                            data-team-name="@item.TeamName"
+                                            data-zone="@zone"
+                                            tabindex="0">
+
+                                            <td class="col-pos">@item.Position</td>
+
+                                            <th scope="row" class="col-team">
+                                                <div class="team-cell">
+
+                                                    @if (!string.IsNullOrWhiteSpace(item.LogoUrl))
+                                                    {
+                                                        <img src="@Url.Content(item.LogoUrl)"
+                                                             class="team-logo"
+                                                             alt="@item.TeamName" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="team-crest" aria-hidden="true">
+                                                            @shortName
+                                                        </span>
+                                                    }
+
+                                                    <span class="team-name">@item.TeamName</span>
+                                                </div>
+                                            </th>
+
+                                            <td class="col-num">@item.Played</td>
+                                            <td class="col-num">@item.Won</td>
+                                            <td class="col-num">@item.Drawn</td>
+                                            <td class="col-num">@item.Lost</td>
+                                            <td class="col-num col-hide-sm">@item.GoalsFor</td>
+                                            <td class="col-num col-hide-sm">@item.GoalsAgainst</td>
+
+                                            <td class="col-gd">
+                                                @if (item.GoalDifference > 0)
+                                                {
+                                                    <span class="gd is-pos">+@item.GoalDifference</span>
+                                                }
+                                                else if (item.GoalDifference < 0)
+                                                {
+                                                    <span class="gd is-neg">@item.GoalDifference</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="gd is-zero">0</span>
+                                                }
+                                            </td>
+
+                                            <td class="col-pts">@item.Points</td>
+
+                                            <td class="col-form">
+                                                @if (item.LastFive != null && item.LastFive.Any())
+                                                {
+                                                    <ol class="form-list" aria-label="@item.TeamName son maç sonuçları">
+                                                        @foreach (var result in item.LastFive)
+                                                        {
+                                                            var resultClass = result == "G"
+                                                                ? "form-badge--w"
+                                                                : result == "B"
+                                                                    ? "form-badge--d"
+                                                                    : "form-badge--l";
+
+                                                            var title = result == "G"
+                                                                ? "Galibiyet"
+                                                                : result == "B"
+                                                                    ? "Beraberlik"
+                                                                    : "Mağlubiyet";
+
+                                                            <li>
+                                                                <span class="form-badge @resultClass" title="@title">
+                                                                    @result
+                                                                </span>
+                                                            </li>
+                                                        }
+                                                    </ol>
+                                                }
+                                                else
+                                                {
+                                                    <span class="form-empty">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+
+                                    <tr class="empty-row" data-empty-row hidden>
+                                        <td colspan="11">
+                                            <strong>Bu filtreyle eşleşen takım yok.</strong>
+                                            Aramayı temizle ya da “Tümü” filtresini seç.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-foot">
+                            <span>
+                                Gösterilen takım:
+                                <strong data-visible-count>@standings.Count</strong>
+                                / @standings.Count
+                            </span>
+
+                            <span>3. hafta verileri</span>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- SIDEBAR -->
+                <aside class="col-xl-3" aria-label="Tablo açıklamaları">
+                    <div class="side-stack">
+
+                        <section class="side-card">
+                            <h2 class="side-card__title">Renklerin anlamı</h2>
+
+                            <ul class="legend-list">
+                                <li>
+                                    <span class="legend-swatch" style="--swatch:var(--blue)"></span>
+                                    <div>
+                                        <strong>Şampiyonlar Ligi</strong>
+                                        <span>1-4. sıra</span>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span class="legend-swatch" style="--swatch:var(--green)"></span>
+                                    <div>
+                                        <strong>Avrupa kupaları</strong>
+                                        <span>5-6. sıra</span>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span class="legend-swatch" style="--swatch:var(--red)"></span>
+                                    <div>
+                                        <strong>Düşme hattı</strong>
+                                        <span>18-20. sıra</span>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <ul class="form-key" aria-label="Form rozetleri">
+                                <li><span class="form-badge form-badge--w">G</span>Galibiyet</li>
+                                <li><span class="form-badge form-badge--d">B</span>Beraberlik</li>
+                                <li><span class="form-badge form-badge--l">M</span>Mağlubiyet</li>
+                            </ul>
+                        </section>
+
+                        <section class="side-card">
+                            <h2 class="side-card__title">İlk 3 takım</h2>
+                            <p>Güncel puan sıralamasına göre</p>
+
+                            <ol class="form-leaders">
+                                @foreach (var team in standings.Take(3))
+                                {
+                                    var shortName = team.TeamName.Length >= 3
+                                        ? team.TeamName.Substring(0, 3).ToUpperInvariant()
+                                        : team.TeamName.ToUpperInvariant();
+
+                                    <li>
+                                        @if (!string.IsNullOrWhiteSpace(team.LogoUrl))
+                                        {
+                                            <img src="@Url.Content(team.LogoUrl)"
+                                                 class="team-logo team-logo--sm"
+                                                 alt="@team.TeamName" />
+                                        }
+                                        else
+                                        {
+                                            <span class="team-crest team-crest--sm">@shortName</span>
+                                        }
+
+                                        <span class="team-name">@team.TeamName</span>
+
+                                        <span class="form-leaders__pts">
+                                            @team.Points <small>puan</small>
+                                        </span>
+                                    </li>
+                                }
+                            </ol>
+                        </section>
+
+                        <section class="side-card note-card">
+                            <h2 class="side-card__title">Sıralama notu</h2>
+                            <p>
+                                Puan eşitliğinde averaj dikkate alınır.
+                                Averaj da eşitse atılan gol sayısına bakılır.
+                            </p>
+                            <p>
+                                Son maçlar bölümünde en sağdaki rozet en son oynanan maçı gösterir.
+                            </p>
+                        </section>
+
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            'use strict';
+
+            const root = document.querySelector('[data-standings]');
+            if (!root) return;
+
+            const rows = Array.from(root.querySelectorAll('.standings-row'));
+            const markers = Array.from(root.querySelectorAll('[data-ladder-team]'));
+            const chips = Array.from(root.querySelectorAll('[data-zone-filter]'));
+            const search = root.querySelector('[data-team-search]');
+            const counter = root.querySelector('[data-visible-count]');
+            const emptyRow = root.querySelector('[data-empty-row]');
+
+            let activeZone = 'all';
+            let selectedTeam = null;
+
+            const normalize = (value) =>
+                value
+                    .toLocaleLowerCase('tr-TR')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '');
+
+            function applyFilters() {
+                const query = normalize(search ? search.value.trim() : '');
+                let visible = 0;
+
+                rows.forEach((row) => {
+                    const zoneMatch =
+                        activeZone === 'all' ||
+                        row.dataset.zone === activeZone;
+
+                    const textMatch =
+                        !query ||
+                        normalize(row.dataset.teamName).includes(query);
+
+                    row.hidden = !(zoneMatch && textMatch);
+
+                    if (!row.hidden) {
+                        visible++;
+                    }
+                });
+
+                if (counter) {
+                    counter.textContent = String(visible);
+                }
+
+                if (emptyRow) {
+                    emptyRow.hidden = visible !== 0;
+                }
+            }
+
+            function setZone(zone) {
+                activeZone = zone;
+
+                chips.forEach((chip) => {
+                    chip.setAttribute(
+                        'aria-pressed',
+                        String(chip.dataset.zoneFilter === zone)
+                    );
+                });
+
+                applyFilters();
+            }
+
+            chips.forEach((chip) => {
+                chip.addEventListener('click', () => {
+                    setZone(chip.dataset.zoneFilter);
+                });
+            });
+
+            if (search) {
+                search.addEventListener('input', applyFilters);
+            }
+
+            function selectTeam(team, scrollToRow = false) {
+                selectedTeam =
+                    selectedTeam === team
+                        ? null
+                        : team;
+
+                rows.forEach((row) => {
+                    row.classList.toggle(
+                        'is-selected',
+                        row.dataset.team === selectedTeam
+                    );
+                });
+
+                markers.forEach((marker) => {
+                    const active =
+                        marker.dataset.ladderTeam === selectedTeam;
+
+                    marker.classList.toggle('is-active', active);
+                    marker.setAttribute('aria-pressed', String(active));
+                });
+
+                if (!scrollToRow || !selectedTeam) {
+                    return;
+                }
+
+                const row = rows.find(
+                    x => x.dataset.team === selectedTeam
+                );
+
+                if (row) {
+                    row.scrollIntoView({
+                        block: 'center',
+                        behavior: 'smooth'
+                    });
+                }
+            }
+
+            rows.forEach((row) => {
+                row.addEventListener('click', () => {
+                    selectTeam(row.dataset.team);
+                });
+
+                row.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        selectTeam(row.dataset.team);
+                    }
+                });
+            });
+
+            markers.forEach((marker) => {
+                marker.addEventListener('click', () => {
+                    selectTeam(
+                        marker.dataset.ladderTeam,
+                        true
+                    );
+                });
+            });
+
+            applyFilters();
+        })();
+    </script>
+}

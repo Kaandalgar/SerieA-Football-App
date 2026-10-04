@@ -1,0 +1,384 @@
+﻿@model SerieA.WebUI.ViewModels.AdminMatchPageViewModel
+@{
+    Layout = null;
+    var matches = Model.Matches ?? new List<SerieA.WebUI.ViewModels.AdminMatchListItemViewModel>();
+    var teams = Model.Teams ?? new List<SerieA.WebUI.ViewModels.TeamSummaryViewModel>();
+
+    string StatusText(string status) => status switch
+    {
+        "Finished" => "Tamamlandı",
+        "Live" => "Canlı",
+        "Postponed" => "Ertelendi",
+        _ => "Başlamadı"
+    };
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maç Yönetimi | Serie A Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/admin-match.css" asp-append-version="true" />
+</head>
+<body class="admin">
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8.5a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+        <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M12 7.6l3.3 2.4-1.3 3.8h-4l-1.3-3.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-table" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16M9 4v16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M4.5 20c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M20 20l-4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8" /></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" /></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+            <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-logout" viewBox="0 0 24 24">
+            <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 16l-4-4 4-4M6 12h10"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round" />
+        </symbol>
+    </svg>
+
+    <aside class="admin-sidebar" id="admin-sidebar" aria-label="Yönetim menüsü">
+
+        <a class="sidebar-brand" href="/AdminMatch">
+            <span class="brand-mark" aria-hidden="true">SA</span>
+            <span class="brand-text">Serie A Admin</span>
+        </a>
+
+        <p class="sidebar-label">Yönetim</p>
+
+        <ul class="sidebar-nav">
+
+            <li>
+                <a class="sidebar-link" href="/Standings">
+                    <svg class="icon">
+                        <use href="#i-home" />
+                    </svg>
+                    Ana Sayfa
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link is-active" href="/AdminMatch">
+                    <svg class="icon">
+                        <use href="#i-ball" />
+                    </svg>
+                    Maçlar
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/AdminTeam">
+                    <svg class="icon">
+                        <use href="#i-shield" />
+                    </svg>
+                    Takımlar
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/Fixtures">
+                    <svg class="icon">
+                        <use href="#i-calendar" />
+                    </svg>
+                    Fikstür
+                </a>
+            </li>
+
+            <li>
+                <a class="sidebar-link" href="/Standings">
+                    <svg class="icon">
+                        <use href="#i-table" />
+                    </svg>
+                    Puan Durumu
+                </a>
+            </li>
+
+        </ul>
+
+        <div class="sidebar-foot">
+
+            <span class="sidebar-season">
+                Sezon 2026/27
+            </span>
+
+            <a class="sidebar-link sidebar-link--logout"
+               href="/Standings">
+
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-logout" />
+                </svg>
+
+                Siteye Dön
+            </a>
+
+        </div>
+
+    </aside>
+    <div class="sidebar-backdrop" data-sidebar-close></div>
+
+    <div class="admin-main">
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button type="button" class="icon-btn menu-toggle" data-sidebar-toggle aria-label="Menüyü aç"><svg class="icon"><use href="#i-menu" /></svg></button>
+                <p class="topbar-title">Maç Yönetimi</p>
+                <span class="topbar-crumb">Yönetim / Maçlar</span>
+            </div>
+            <div class="topbar-right">
+                <div class="topbar-user">
+                    <span class="avatar"><svg class="icon"><use href="#i-user" /></svg></span>
+                    <span class="topbar-user__text"><span class="topbar-user__name">Yönetici</span><span class="topbar-user__role">Tam yetkili</span></span>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            <div class="page-head">
+                <div>
+                    <span class="page-eyebrow">Serie A 2026/27</span>
+                    <h1 class="page-title">Maç Yönetimi</h1>
+                    <p class="page-desc">Serie A karşılaşmalarını görüntüleyebilir, ekleyebilir, düzenleyebilir ve silebilirsiniz.</p>
+                </div>
+                <button type="button" class="btn-a btn-a--primary" data-open-create><svg class="icon"><use href="#i-plus" /></svg>Yeni Maç Ekle</button>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+
+            <section class="card-a" aria-label="Maç listesi">
+                <form class="filter-bar" data-filter-form role="search">
+                    <div class="filter-search">
+                        <label class="field-label" for="f-team">Takım Ara</label>
+                        <div class="input-icon">
+                            <svg class="icon"><use href="#i-search" /></svg>
+                            <input class="input-a" id="f-team" type="search" placeholder="Takım adı yazın" autocomplete="off">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label" for="f-week">Hafta Seç</label>
+                        <select class="select-a" id="f-week">
+                            <option value="">Tüm Haftalar</option>
+                            @for (int i = 1; i <= 38; i++)
+                            {
+                                <option value="@i">@i. Hafta</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="f-status">Durum</label>
+                        <select class="select-a" id="f-status">
+                            <option value="">Tümü</option>
+                            <option value="NotStarted">Başlamadı</option>
+                            <option value="Live">Canlı</option>
+                            <option value="Finished">Tamamlandı</option>
+                            <option value="Postponed">Ertelendi</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="button" class="btn-a btn-a--ghost" data-filter-reset>Temizle</button>
+                        <button type="submit" class="btn-a btn-a--secondary">Filtrele</button>
+                    </div>
+                </form>
+
+                <div class="table-scroll">
+                    <table class="match-table">
+                        <thead>
+                            <tr>
+                                <th class="col-id">ID</th>
+                                <th>Hafta</th>
+                                <th>Tarih</th>
+                                <th>Saat</th>
+                                <th>Ev Sahibi</th>
+                                <th class="col-score">Skor</th>
+                                <th>Deplasman</th>
+                                <th>Durum</th>
+                                <th class="col-actions">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody data-match-rows>
+                            @foreach (var item in matches)
+                            {
+                                <tr data-row
+                                    data-id="@item.Id"
+                                    data-team="@($"{item.HomeTeam?.Name} {item.AwayTeam?.Name}".ToLowerInvariant())"
+                                    data-week="@item.Week"
+                                    data-status="@item.Status"
+                                    data-home-id="@item.HomeTeamId"
+                                    data-away-id="@item.AwayTeamId"
+                                    data-date="@item.MatchDate.ToString("yyyy-MM-dd")"
+                                    data-time="@item.MatchDate.ToString("HH:mm")"
+                                    data-stadium="@item.Stadium"
+                                    data-home-score="@(item.HomeScore?.ToString() ?? "")"
+                                    data-away-score="@(item.AwayScore?.ToString() ?? "")">
+                                    <td class="col-id"><span>@item.Id</span></td>
+                                    <td class="week-cell">@item.Week. Hafta</td>
+                                    <td>@item.MatchDate.ToString("dd.MM.yyyy")</td>
+                                    <td>@item.MatchDate.ToString("HH:mm")</td>
+                                    <td><span class="team">@if (!string.IsNullOrWhiteSpace(item.HomeTeam?.LogoUrl)) {
+                                    <img class="team-crest" src="@Url.Content(item.HomeTeam.LogoUrl)" alt="" />
+                                }
+ @item.HomeTeam?.Name</span></td>
+                                <td class="col-score">@if (item.HomeScore.HasValue && item.AwayScore.HasValue) {
+                                <span class="score">@item.HomeScore - @item.AwayScore</span>
+                                                                } else
+                                {
+
+                                    <span class="score score--empty">-</span>
+                                }
+</td>
+                                <td><span class="team">@if (!string.IsNullOrWhiteSpace(item.AwayTeam?.LogoUrl)) {
+                                <img class="team-crest" src="@Url.Content(item.AwayTeam.LogoUrl)" alt="" />
+                                                                }
+ @item.AwayTeam?.Name</span></td>
+                                <td><span class="badge-a badge-a--@item.Status">@StatusText(item.Status)</span></td>
+                                <td class="col-actions">
+                                    <div class="row-actions">
+                                        <a class="act-btn" href="/Match/Detail/@item.Id" title="Detay"><svg class="icon"><use href="#i-eye" /></svg></a>
+                                        <button type="button" class="act-btn" data-edit title="Düzenle"><svg class="icon"><use href="#i-edit" /></svg></button>
+                                        <button type="button" class="act-btn act-btn--danger" data-delete title="Sil"><svg class="icon"><use href="#i-trash" /></svg></button>
+                                    </div>
+                                </td>
+                            </tr>
+                                                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-foot"><span data-result-count>@matches.Count maç gösteriliyor</span><span>Sezon 2026/27</span></div>
+            </section>
+        </main>
+    </div>
+
+    <dialog class="modal-a" id="match-modal">
+        <form method="post" id="match-form" asp-controller="AdminMatch" asp-action="Create">
+            @Html.AntiForgeryToken()
+            <div class="modal-head"><h2 class="modal-title" id="match-modal-title">Yeni Maç Ekle</h2><button type="button" class="icon-btn" data-modal-close><svg class="icon"><use href="#i-x" /></svg></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="m-id" name="Id" />
+                <div class="form-grid">
+                    <div class="form-field"><label class="field-label">Hafta *</label><select class="select-a" id="m-week" name="Week" required>@for (int i = 1; i <= 38; i++) {
+                    <option value="@i">@i. Hafta</option>
+                                        }
+</select></div>
+                    <div class="form-field"><label class="field-label">Maç Durumu</label><select class="select-a" id="m-status" name="Status"><option value="NotStarted">Başlamadı</option><option value="Live">Canlı</option><option value="Finished">Tamamlandı</option><option value="Postponed">Ertelendi</option></select></div>
+                    <div class="form-field"><label class="field-label">Ev Sahibi *</label><select class="select-a" id="m-home" name="HomeTeamId" required>@foreach (var t in teams) {
+                    <option value="@t.Id">@t.Name</option>
+                                        }
+</select></div>
+                    <div class="form-field"><label class="field-label">Deplasman *</label><select class="select-a" id="m-away" name="AwayTeamId" required>@foreach (var t in teams) {
+                    <option value="@t.Id">@t.Name</option>
+                                        }
+</select></div>
+                    <div class="form-field"><label class="field-label">Tarih *</label><input class="input-a" id="m-date" type="date" required /></div>
+                    <div class="form-field"><label class="field-label">Saat *</label><input class="input-a" id="m-time" type="time" required /></div>
+                    <input type="hidden" id="m-datetime" name="MatchDate" />
+                    <div class="form-field span-2"><label class="field-label">Stadyum</label><input class="input-a" id="m-stadium" name="Stadium" type="text" /></div>
+                    <div class="score-fields span-2" id="score-fields" hidden>
+                        <div class="form-field"><label class="field-label">Ev sahibi skoru</label><input class="input-a" id="m-hs" name="HomeScore" type="number" min="0" max="20" /></div>
+                        <div class="form-field"><label class="field-label">Deplasman skoru</label><input class="input-a" id="m-as" name="AwayScore" type="number" min="0" max="20" /></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot"><button type="button" class="btn-a btn-a--secondary" data-modal-close>Vazgeç</button><button type="submit" class="btn-a btn-a--primary">Kaydet</button></div>
+        </form>
+    </dialog>
+
+    <dialog class="modal-a modal-a--sm" id="delete-modal">
+        <form method="post" asp-controller="AdminMatch" asp-action="Delete">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="delete-id" />
+            <div class="modal-head"><h2 class="modal-title">Maçı sil</h2><button type="button" class="icon-btn" data-delete-close><svg class="icon"><use href="#i-x" /></svg></button></div>
+            <div class="modal-body"><p class="confirm-text">Bu maç kalıcı olarak silinecek. Emin misiniz?</p></div>
+            <div class="modal-foot"><button type="button" class="btn-a btn-a--secondary" data-delete-close>Vazgeç</button><button type="submit" class="btn-a btn-a--danger">Evet, sil</button></div>
+        </form>
+    </dialog>
+
+    <script>
+        (() => {
+            const modal = document.getElementById('match-modal');
+            const form = document.getElementById('match-form');
+            const title = document.getElementById('match-modal-title');
+            const id = document.getElementById('m-id');
+            const week = document.getElementById('m-week');
+            const status = document.getElementById('m-status');
+            const home = document.getElementById('m-home');
+            const away = document.getElementById('m-away');
+            const date = document.getElementById('m-date');
+            const time = document.getElementById('m-time');
+            const dateTime = document.getElementById('m-datetime');
+            const stadium = document.getElementById('m-stadium');
+            const hs = document.getElementById('m-hs');
+            const ascore = document.getElementById('m-as');
+            const scoreFields = document.getElementById('score-fields');
+
+            const syncScore = () => scoreFields.hidden = !(status.value === 'Finished' || status.value === 'Live');
+            const syncDateTime = () => { if (date.value && time.value) dateTime.value = `${date.value}T${time.value}`; };
+
+            document.querySelector('[data-open-create]').addEventListener('click', () => {
+                form.reset(); form.action = '/AdminMatch/Create'; id.value = ''; title.textContent = 'Yeni Maç Ekle'; syncScore(); modal.showModal();
+            });
+            document.querySelectorAll('[data-modal-close]').forEach(x => x.addEventListener('click', () => modal.close()));
+            status.addEventListener('change', syncScore);
+            date.addEventListener('change', syncDateTime); time.addEventListener('change', syncDateTime); form.addEventListener('submit', syncDateTime);
+
+            document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => {
+                const row = btn.closest('[data-row]');
+                form.action = '/AdminMatch/Edit';
+                id.value = row.dataset.id; week.value = row.dataset.week; home.value = row.dataset.homeId; away.value = row.dataset.awayId;
+                date.value = row.dataset.date; time.value = row.dataset.time; stadium.value = row.dataset.stadium || ''; status.value = row.dataset.status;
+                hs.value = row.dataset.homeScore || ''; ascore.value = row.dataset.awayScore || ''; syncDateTime(); syncScore(); title.textContent = 'Maçı Düzenle'; modal.showModal();
+            }));
+
+            const deleteModal = document.getElementById('delete-modal');
+            document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => {
+                document.getElementById('delete-id').value = btn.closest('[data-row]').dataset.id; deleteModal.showModal();
+            }));
+            document.querySelectorAll('[data-delete-close]').forEach(btn => btn.addEventListener('click', () => deleteModal.close()));
+
+            const filter = document.querySelector('[data-filter-form]');
+            const rows = [...document.querySelectorAll('[data-row]')];
+            const counter = document.querySelector('[data-result-count]');
+            filter.addEventListener('submit', e => {
+                e.preventDefault();
+                const teamQ = document.getElementById('f-team').value.trim().toLowerCase();
+                const weekQ = document.getElementById('f-week').value;
+                const statusQ = document.getElementById('f-status').value;
+                let visible = 0;
+                rows.forEach(row => {
+                    const show = (!teamQ || row.dataset.team.includes(teamQ)) && (!weekQ || row.dataset.week === weekQ) && (!statusQ || row.dataset.status === statusQ);
+                    row.hidden = !show; if (show) visible++;
+                });
+                counter.textContent = `@Model.Matches.Count kayıttan ${visible} tanesi gösteriliyor`;
+            });
+            document.querySelector('[data-filter-reset]').addEventListener('click', () => { filter.reset(); rows.forEach(r => r.hidden = false); counter.textContent = '@matches.Count maç gösteriliyor'; });
+
+            const toggle = document.querySelector('[data-sidebar-toggle]');
+            toggle?.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+            document.querySelector('[data-sidebar-close]')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+        })();
+    </script>
+</body>
+</html>
